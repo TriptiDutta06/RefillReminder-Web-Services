@@ -1,0 +1,13 @@
+package com.refillreminder;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class RefillReminderApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(RefillReminderApplication.class, args);
+	}
+
+}

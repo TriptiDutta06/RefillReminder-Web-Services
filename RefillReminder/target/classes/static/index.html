@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌸 RefillReminder — Household Refill REST Service</title>
+  <meta name="description" content="Never run out of the things you need. Real Spring Boot RESTful household refill web service.">
+  
+  <!-- Modern Clean Google Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Pastel Pink & Lavender Stylesheet -->
+  <link rel="stylesheet" href="/css/style.css">
+  <!-- Auth Guard: redirect to login if not logged in -->
+  <script>
+    if (sessionStorage.getItem('rr_logged_in') !== 'true') {
+      window.location.replace('/login.html');
+    }
+  </script>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header with Branding -->
+    <header class="app-header">
+      <div class="brand-wrapper">
+        <div class="brand-logo" aria-label="RefillReminder Logo">🌸</div>
+        <div class="brand-info">
+          <h1>RefillReminder</h1>
+          <p>Never run out of the things you need.</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span id="welcome-user" style="font-size:13px;color:#9c27b0;font-weight:600;margin-right:12px;"></span>
+        <button id="open-add-btn" class="btn btn-primary">
+          <span>✨</span> + Add Refill
+        </button>
+        <button onclick="logout()" style="margin-left:10px;padding:9px 18px;border:2px solid #e1bee7;border-radius:12px;background:white;color:#7b1fa2;font-weight:600;cursor:pointer;font-family:inherit;font-size:14px;" title="Logout">🚪 Logout</button>
+      </div>
+    </header>
+
+    <!-- Dashboard Statistics -->
+    <section class="stats-grid" aria-label="Dashboard Statistics">
+      <div class="stat-card">
+        <div class="stat-icon pink">📦</div>
+        <div class="stat-info">
+          <div id="stat-total" class="stat-value">0</div>
+          <div class="stat-label">Total Items</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon orange">⚠️</div>
+        <div class="stat-info">
+          <div id="stat-running-low" class="stat-value">0</div>
+          <div class="stat-label">Running Low</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon yellow">⏳</div>
+        <div class="stat-info">
+          <div id="stat-due-soon" class="stat-value">0</div>
+          <div class="stat-label">Due Soon</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon green">✅</div>
+        <div class="stat-info">
+          <div id="stat-refilled" class="stat-value">0</div>
+          <div class="stat-label">Refilled</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Database Status Section -->
+    <section class="db-status-section" aria-label="Database Status">
+      <div class="db-status-card">
+        <div class="db-status-header">
+          <span class="db-status-icon" id="db-status-icon">🟢</span>
+          <div>
+            <h3 id="db-status-title">MongoDB Connected</h3>
+            <p class="db-status-meta">Database: <code>refillreminder</code> &nbsp;|&nbsp; Collection: <code>refills</code></p>
+          </div>
+        </div>
+        <div class="db-status-count">
+          <span class="db-count-label">Total documents:</span>
+          <span class="db-count-value" id="db-doc-count">—</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Toolbar: Search, Filters & Tabs -->
+    <section class="toolbar-card" aria-label="Refills Filter and Search">
+      <div class="toolbar-top">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Search product (e.g. Shampoo, Coffee)..." autocomplete="off">
+        </div>
+
+        <div class="filters-group">
+          <select id="category-filter" class="select-filter" aria-label="Filter by category">
+            <option value="">All Categories</option>
+            <option value="Personal Care">Personal Care</option>
+            <option value="Cleaning">Cleaning</option>
+            <option value="Kitchen">Kitchen</option>
+            <option value="Laundry">Laundry</option>
+            <option value="Pantry">Pantry</option>
+          </select>
+
+          <select id="priority-filter" class="select-filter" aria-label="Filter by priority">
+            <option value="">All Priorities</option>
+            <option value="High">High Priority</option>
+            <option value="Medium">Medium Priority</option>
+            <option value="Low">Low Priority</option>
+          </select>
+
+          <select id="status-filter" class="select-filter" aria-label="Filter by status">
+            <option value="">All Statuses</option>
+            <option value="Needed">Needed</option>
+            <option value="Running Low">Running Low</option>
+            <option value="Due Soon">Due Soon</option>
+            <option value="Refilled">Refilled</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="tab-pills" role="tablist">
+        <button class="tab-pill active" data-tab="all">All Household Items</button>
+        <button class="tab-pill" data-tab="upcoming">⏰ Upcoming Refills</button>
+        <button class="tab-pill" data-tab="running-low">⚠️ Running Low</button>
+        <button class="tab-pill" data-tab="refilled">✨ Stocked / Refilled</button>
+      </div>
+    </section>
+
+    <!-- Refill Cards Section -->
+    <main>
+      <div class="section-header">
+        <h2>
+          <span>Household Products</span>
+          <span id="items-count-badge" class="badge-count">0 items</span>
+        </h2>
+      </div>
+
+      <div id="refills-grid" class="refills-grid">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </main>
+
+    <!-- Interactive REST API Documentation Section -->
+    <section class="api-doc-section" aria-label="REST API Documentation">
+      <div class="api-doc-header">
+        <h2>⚡ Real RESTful Web Service Endpoints</h2>
+        <p>This application implements standard REST constraints with HTTP verbs, JSON payloads, and HTTP status codes.</p>
+      </div>
+
+      <div class="endpoints-grid">
+        <div class="endpoint-row">
+          <span class="endpoint-method method-post">POST</span>
+          <span class="endpoint-uri">/api/refills</span>
+          <span class="endpoint-desc">Creates a new refill record in MongoDB</span>
+          <span class="endpoint-status">201 Created</span>
+        </div>
+
+        <div class="endpoint-row">
+          <span class="endpoint-method method-get">GET</span>
+          <span class="endpoint-uri">/api/refills</span>
+          <span class="endpoint-desc">Retrieves all household refill records</span>
+          <span class="endpoint-status">200 OK</span>
+        </div>
+
+        <div class="endpoint-row">
+          <span class="endpoint-method method-get">GET</span>
+          <span class="endpoint-uri">/api/refills/{id}</span>
+          <span class="endpoint-desc">Retrieves a single refill by primary key ID</span>
+          <span class="endpoint-status">200 OK / 404</span>
+        </div>
+
+        <div class="endpoint-row">
+          <span class="endpoint-method method-put">PUT</span>
+          <span class="endpoint-uri">/api/refills/{id}</span>
+          <span class="endpoint-desc">Updates all attributes of an existing refill record</span>
+          <span class="endpoint-status">200 OK / 404</span>
+        </div>
+
+        <div class="endpoint-row">
+          <span class="endpoint-method method-patch">PATCH</span>
+          <span class="endpoint-uri">/api/refills/{id}/status</span>
+          <span class="endpoint-desc">Partially updates refill status (e.g. marks as 'Refilled')</span>
+          <span class="endpoint-status">200 OK / 404</span>
+        </div>
+
+        <div class="endpoint-row">
+          <span class="endpoint-method method-delete">DELETE</span>
+          <span class="endpoint-uri">/api/refills/{id}</span>
+          <span class="endpoint-desc">Permanently removes a refill from MongoDB</span>
+          <span class="endpoint-status">200 OK / 404</span>
+        </div>
+
+        <div class="endpoint-row">
+          <span class="endpoint-method method-get">GET</span>
+          <span class="endpoint-uri">/api/refills/upcoming</span>
+          <span class="endpoint-desc">Queries approaching refills due within the next 7 days</span>
+          <span class="endpoint-status">200 OK</span>
+        </div>
+
+        <div class="endpoint-row">
+          <span class="endpoint-method method-get">GET</span>
+          <span class="endpoint-uri">/api/refills/search?name=...</span>
+          <span class="endpoint-desc">Performs case-insensitive substring search on product name</span>
+          <span class="endpoint-status">200 OK</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Add / Edit Modal -->
+  <div id="refill-modal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 id="modal-title">🌸 Add Household Refill</h3>
+        <button class="close-btn close-modal-btn" aria-label="Close modal">&times;</button>
+      </div>
+
+      <form id="refill-form">
+        <div class="modal-body">
+          <input type="hidden" id="refill-id">
+
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label for="field-name">Product Name <span class="req">*</span></label>
+              <input type="text" id="field-name" class="form-control" placeholder="e.g. Lavender Shampoo" required>
+            </div>
+
+            <div class="form-group">
+              <label for="field-category">Category</label>
+              <select id="field-category" class="form-control">
+                <option value="Personal Care">Personal Care</option>
+                <option value="Cleaning">Cleaning</option>
+                <option value="Kitchen">Kitchen</option>
+                <option value="Laundry">Laundry</option>
+                <option value="Pantry">Pantry</option>
+                <option value="General">General</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="field-priority">Priority</label>
+              <select id="field-priority" class="form-control">
+                <option value="High">High</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="field-quantity">Quantity <span class="req">*</span></label>
+              <input type="number" id="field-quantity" class="form-control" min="0" step="any" value="1" required>
+            </div>
+
+            <div class="form-group">
+              <label for="field-unit">Unit</label>
+              <input type="text" id="field-unit" class="form-control" placeholder="bottles, rolls, kg, liters" value="bottles">
+            </div>
+
+            <div class="form-group">
+              <label for="field-last-refilled">Last Refilled Date</label>
+              <input type="date" id="field-last-refilled" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label for="field-next-refill">Next Refill Date</label>
+              <input type="date" id="field-next-refill" class="form-control">
+            </div>
+
+            <div class="form-group full-width">
+              <label for="field-status">Status</label>
+              <select id="field-status" class="form-control">
+                <option value="Needed">Needed</option>
+                <option value="Running Low">Running Low</option>
+                <option value="Due Soon">Due Soon</option>
+                <option value="Refilled">Refilled</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="field-notes">Notes / Brand Preferences</label>
+              <textarea id="field-notes" class="form-control" placeholder="Specific scent, brand, eco-friendly preference, etc."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary close-modal-btn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Refill Record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="delete-modal" class="modal-overlay">
+    <div class="modal-container" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3>🗑️ Confirm Deletion</h3>
+        <button class="close-btn close-modal-btn" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text-sub); font-size: 0.95rem;">
+          Are you sure you want to delete <strong id="delete-item-name" style="color: var(--text-main);"></strong> from your refill inventory?
+        </p>
+        <p style="color: var(--text-muted); font-size: 0.82rem; margin-top: 8px;">
+          This will trigger an HTTP <code>DELETE /api/refills/{id}</code> request to the backend.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary close-modal-btn">Cancel</button>
+        <button id="confirm-delete-btn" type="button" class="btn btn-danger">Yes, Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <!-- Client JavaScript -->
+  <script src="/js/app.js"></script>
+  <script>
+    // Show username in header
+    const user = sessionStorage.getItem('rr_user') || 'admin';
+    document.getElementById('welcome-user').textContent = '👤 ' + user;
+
+    // Logout function
+    function logout() {
+      sessionStorage.removeItem('rr_logged_in');
+      sessionStorage.removeItem('rr_user');
+      window.location.href = '/login.html';
+    }
+  </script>
+</body>
+</html>
